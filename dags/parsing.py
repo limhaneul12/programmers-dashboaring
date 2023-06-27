@@ -1,20 +1,10 @@
 import re
 import pandas as pd
-import pymysql
-import configparser
 from typing import *
 
 import re
 import pandas as pd
-
-parser = configparser.ConfigParser()
-parser.read("pipeline.conf")
-
-hostname = parser.get("mysql_config", "host")
-port = parser.get("mysql_config", "port")
-user = parser.get("mysql_config", "user")
-password = parser.get("mysql_config", "password")
-db = parser.get("mysql_config", "db")
+from airflow.providers.mysql.hooks.mysql import MySqlHook
 
 
 def re_parsing_log_data(path: str = "access_log_.log") -> List[Tuple[str]]:
@@ -53,17 +43,10 @@ def log_data_saving() -> None:
     # 'os' 열에 운영체제 정보 추출하여 추가
     df['os'] = df['os'].apply(extract_os)
     df["time"] = pd.to_datetime(df["time"], format="%d/%b/%Y:%X", exact=False)
-    df["time"] = pd.to_datetime(df["time"], format="%Y-%M-%d", exact=False)
-    df.to_csv("order_extrect_log.csv")
-    
-    conn = pymysql.connect(
-        host=hostname,
-        user=user,
-        password=password,
-        db=db,
-        port=int(port)
-    )
+    df["time"] = pd.to_datetime(df["time"], format="%Y-%m-%d %H:%M:%S", exact=False)
 
+    df.to_csv("order_extrect_log.csv")
+    mysql_hook = MySqlHook(mysql_conn_id="mysql_my_test")
     for index, row in df.iterrows():
         query = f"INSERT INTO log (ip, time, first_redirect, present_redirect, method, request, \
                                     status, byte, version, os, public, browser, location) VALUES \
@@ -73,9 +56,6 @@ def log_data_saving() -> None:
             '{row['status']}', '{row['byte']}', '{row['version']}', \
             '{row['os']}', '{row['public']}', '{row['browser']}', '{row['location']}'\
             )"
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-        conn.commit()
-        
+        mysql_hook.run(query)
 
-log_data_saving()
+

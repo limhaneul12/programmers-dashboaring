@@ -1,0 +1,9 @@
+tensorflow
+keras
+numpy
+scikit-learn
+matplotlib
+pymysql
+boto3
+configparser
+faker
