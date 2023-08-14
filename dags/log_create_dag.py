@@ -1,12 +1,8 @@
 import datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.operators.empty import EmptyOperator
-from airflow.providers.amazon.aws.operators.s3 import (
-    S3CreateBucketOperator, S3DeleteBucketOperator
-)
+from airflow.providers.amazon.aws.operators.s3 import S3CreateBucketOperator
 from airflow.providers.mysql.hooks.mysql import MySqlHook
-from airflow.providers.mysql.operators.mysql import MySqlOperator
 from airflow.models import Variable
 
 
@@ -47,7 +43,7 @@ default_args = {
     'retry_delay': datetime.timedelta(minutes=5),
 }
 
-with DAG(dag_id="test_dag",
+with DAG(dag_id="log_saving_interaction_dag",
          default_args=default_args,
          schedule_interval='0 0 * * *',
          description="Description: MySQL log parsing in generator log injection pipeline") as dag:
@@ -75,17 +71,7 @@ with DAG(dag_id="test_dag",
         python_callable=log_data_saving,
         dag=dag
     )
-
-    log_empty_edata = EmptyOperator(
-        task_id="empty",
-        dag=dag
-    )
-
-
-
-    my_task >> log_start >> log_data_extract >> log_empty_edata 
-
-"""
+    
     create_bucket = S3CreateBucketOperator(
         task_id='s3_bucket_dag_create',
         bucket_name=BUCKET_NAME,
@@ -99,4 +85,6 @@ with DAG(dag_id="test_dag",
         dag=dag
     )
 
-"""
+
+    my_task >> log_start >> log_data_extract >> create_bucket >> log_saving
+

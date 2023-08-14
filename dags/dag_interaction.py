@@ -1,20 +1,8 @@
 import airflow.utils.dates
 from airflow import DAG
-from airflow.operators.python import PythonOperator
-from airflow.operators.empty import EmptyOperator
-from airflow.providers.amazon.aws.operators.s3 import (
-    S3CreateBucketOperator, S3DeleteBucketOperator
-)
+from airflow.providers.amazon.aws.operators.s3 import S3DeleteBucketOperator
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from airflow.providers.mysql.operators.mysql import MySqlOperator
-from airflow.models import Variable
-
-
-from parsing import log_data_saving
-from burketss import extract_mysql_data_to_s3
-from apachefakeloggen import FakeApacheLogGenerator
-
-
 
 sql_create_table: str = '''
     CREATE TABLE `log` (
@@ -43,7 +31,7 @@ drop_t: str = f"DROP TABLE IF EXISTS dash.log;"
 BUCKET_NAME = "sky-burket-test-injection"
 
 
-with DAG(dag_id="log_parsing_dag", 
+with DAG(dag_id="storage_initalization_dag", 
         start_date=airflow.utils.dates.days_ago(3),
         schedule_interval=None,
         description="descriptrion mysql log parsing in generator log injection pipeline"
